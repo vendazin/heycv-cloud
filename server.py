@@ -181,8 +181,7 @@ def scrape():
 
 def parse_pdf(data: bytes) -> str:
     try:
-        import pypdf
-        reader = pypdf.PdfReader(io.BytesIO(data))
+        reader = PyPDF2.PdfReader(io.BytesIO(data))
         pages = []
         for page in reader.pages:
             t = page.extract_text()
