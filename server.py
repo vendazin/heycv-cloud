@@ -9,7 +9,7 @@ import os, re, json, io, traceback, urllib.parse
 from flask import Flask, request, jsonify, send_from_directory, Response
 import requests
 from bs4 import BeautifulSoup
-import pdfplumber
+import PyPDF2
 import docx as python_docx
 
 app = Flask(__name__, static_folder=".")
