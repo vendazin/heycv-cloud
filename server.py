@@ -181,13 +181,14 @@ def scrape():
 
 def parse_pdf(data: bytes) -> str:
     try:
-        with pdfplumber.open(io.BytesIO(data)) as pdf:
-            pages = []
-            for page in pdf.pages:
-                t = page.extract_text()
-                if t:
-                    pages.append(t.strip())
-            return "\n\n".join(pages)
+        import pypdf
+        reader = pypdf.PdfReader(io.BytesIO(data))
+        pages = []
+        for page in reader.pages:
+            t = page.extract_text()
+            if t:
+                pages.append(t.strip())
+        return "\n\n".join(pages)
     except Exception as e:
         raise ValueError(f"PDF konnte nicht gelesen werden: {e}")
 
