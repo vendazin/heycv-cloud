@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
-"""
-heycv.cloud – Backend Server
-"""
+"""heycv.cloud – Backend Server"""
 
 import os, json, io, urllib.parse, random
 from flask import Flask, request, jsonify, send_from_directory, Response
 import requests
 from bs4 import BeautifulSoup
-import PyPDF2
 import docx as python_docx
 
 app = Flask(__name__, static_folder=".")
@@ -33,16 +30,12 @@ USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/17.4 Safari/605.1.15",
 ]
-
 BASE_HEADERS = {
     "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Connection": "keep-alive",
-    "DNT": "1",
 }
-
 NOISE_TAGS = {"script","style","noscript","iframe","svg","img","header","footer","nav","aside","form","button","input"}
-
 JOB_SELECTORS = [
     "[data-at='job-ad-text']","[data-testid='jobad-details-job-description']",
     "#jobDescriptionText",".jobsearch-jobDescriptionText",
@@ -50,7 +43,6 @@ JOB_SELECTORS = [
     "[class*='offerDescription']","[class*='job-description']",
     "[class*='jobDescription']","[class*='stellenbeschreibung']",
     "[data-automation-id='jobPostingDescription']",
-    ".posting-description","#app_body",
     "main article","article","[role='main']","main",
 ]
 
@@ -121,20 +113,31 @@ def scrape():
         return jsonify({"error": f"Ladefehler: {str(e)[:200]}"}), 500
     text = extract_job_text(html)
     if len(text) < 150:
-        return jsonify({"error": "Kein Stellentext gefunden. Seite benötigt evtl. JavaScript."}), 422
+        return jsonify({"error": "Kein Stellentext gefunden."}), 422
     return jsonify({"text": text, "length": len(text)})
 
 def parse_pdf(data):
-    reader = PyPDF2.PdfReader(io.BytesIO(data))
-    pages = []
-    for page in reader.pages:
-        t = page.extract_text()
-        if t:
-            pages.append(t.strip())
-    result = "\n\n".join(pages)
-    if not result.strip():
-        raise ValueError("PDF ist leer oder konnte nicht gelesen werden.")
-    return result
+    """Memory-efficient PDF parsing using only built-in/lightweight methods."""
+    try:
+        # Try PyPDF2 first - page by page to save memory
+        import PyPDF2
+        reader = PyPDF2.PdfReader(io.BytesIO(data))
+        pages = []
+        for i, page in enumerate(reader.pages):
+            if i > 10:  # max 10 pages to save memory
+                break
+            try:
+                t = page.extract_text()
+                if t and t.strip():
+                    pages.append(t.strip()[:3000])  # cap per page
+            except Exception:
+                continue
+        text = "\n\n".join(pages)
+        if text.strip():
+            return text
+        raise ValueError("Kein Text gefunden")
+    except Exception as e:
+        raise ValueError(f"PDF konnte nicht gelesen werden: {e}")
 
 def parse_docx(data):
     doc = python_docx.Document(io.BytesIO(data))
@@ -161,11 +164,11 @@ def parse_cv(data, filename):
         else:
             text = data.decode("utf-8", errors="replace")
     except Exception as e:
-        raise ValueError(f"Lebenslauf konnte nicht gelesen werden: {e}")
+        raise ValueError(str(e))
     text = text.strip()
     if len(text) < 40:
         raise ValueError("Lebenslauf ist leer oder konnte nicht ausgelesen werden.")
-    return text[:16000]
+    return text[:12000]
 
 def build_prompt(cv, job, opts):
     opt_lines = []
