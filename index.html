@@ -1088,6 +1088,71 @@ function showRTab(idx, btn){
   $('resultBox').textContent = texts[idx] || '—';
 }
 
+function parseChanges(raw){
+  if(!raw) return [];
+  const lines = raw.split('\n').filter(l=>l.trim().startsWith('•'));
+  return lines.map((line, i) => {
+    const text = line.replace(/^•\s*/, '').trim();
+    let type = 'improve';
+    if(/keyword|schlüsselwort|begriff/i.test(text)) type='keyword';
+    else if(/summary|profil|zusammenfassung/i.test(text)) type='summary';
+    else if(/struktur|format|abschnitt/i.test(text)) type='structure';
+    return { id: i, text, type, status: 'pending' };
+  });
+}
+
+function getTypeLabel(type){
+  const map = {improve:'Verbesserung',keyword:'Keyword',summary:'Profil',structure:'Struktur'};
+  return map[type]||'Änderung';
+}
+
+function renderChanges(){
+  const pending = _changes.filter(c=>c.status==='pending').length;
+  const accepted = _changes.filter(c=>c.status==='accepted').length;
+  const total = _changes.length;
+  $('changesCounter').textContent = `${accepted}/${total} bestätigt`;
+  $('pendingBadge').textContent = pending > 0 ? `${pending} ausstehend` : '✓ Alle geprüft';
+  if(_changes.length === 0){ $('changesReview').style.display='none'; return; }
+  $('changesList').innerHTML = _changes.map(c => `
+    <div class="change-item ${c.status}" id="change-${c.id}">
+      <div class="change-item-header">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span class="change-type ${c.type}">${getTypeLabel(c.type)}</span>
+          <span class="change-reason">${c.text}</span>
+        </div>
+        <div class="change-actions">
+          <button class="btn-accept ${c.status==='accepted'?'active':''}" onclick="setChange(${c.id},'accepted')">✓ Annehmen</button>
+          <button class="btn-reject ${c.status==='rejected'?'active':''}" onclick="setChange(${c.id},'rejected')">✗ Ablehnen</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function setChange(id, status){
+  const c = _changes.find(x=>x.id===id);
+  if(!c) return;
+  c.status = c.status === status ? 'pending' : status;
+  renderChanges();
+  updateDownloadState();
+}
+
+function acceptAllChanges(){ _changes.forEach(c=>c.status='accepted'); renderChanges(); updateDownloadState(); }
+function rejectAllChanges(){ _changes.forEach(c=>c.status='rejected'); renderChanges(); updateDownloadState(); }
+
+function updateDownloadState(){
+  const accepted = _changes.filter(c=>c.status==='accepted').length;
+  const pending = _changes.filter(c=>c.status==='pending').length;
+  const btn = $('btnDownload');
+  const hint = $('downloadHint');
+  if(!btn) return;
+  btn.disabled = false;
+  hint.textContent = pending === 0
+    ? `✓ ${accepted} Änderung(en) bestätigt – bereit zum Download!`
+    : `${pending} Änderung(en) noch ausstehend – du kannst trotzdem herunterladen.`;
+}
+}
+
 // ─────────────────────────────────────────────────
 //  ACTIONS
 // ─────────────────────────────────────────────────
