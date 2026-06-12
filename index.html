@@ -750,7 +750,10 @@ const API_BASE = window.location.origin;
 let _scrapedJobText = '';
 let _scrapeTimer = null;
 let _results = { cv: '', changes: '', tips: '' };
-
+let _changes = [];
+let _originalCV = '';
+let _finalCV = '';
+let cvText = '';
 // ─────────────────────────────────────────────────
 //  UTILS
 // ─────────────────────────────────────────────────
