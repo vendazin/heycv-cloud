@@ -758,7 +758,7 @@ let cvText = '';
 //  UTILS
 // ─────────────────────────────────────────────────
 function $(id){ return document.getElementById(id); }
-function scrollToApp(){ $('app').scrollIntoView({behavior:'smooth'}); }
+function scrollToApp(){    document.getElementById('app').scrollIntoView({behavior:'smooth'});   setTimeout(()=>{ document.getElementById('jobUrl') && document.getElementById('jobUrl').focus(); }, 600); }
 function err(msg){ const b=$('errBar'); b.innerHTML=msg; b.classList.add('visible'); }
 function clearErr(){ $('errBar').classList.remove('visible'); }
 
